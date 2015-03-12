@@ -1,37 +1,145 @@
-// Sweep
-// by BARRAGAN <http://barraganstudio.com> 
-// This example code is in the public domain.
-
 #define MAX 2000
-#define SVP 9
-#define LED 13
-#define MIN 960
-#define DEL 5000
-#define ADD 20
-#include <Servo.h> 
-//wait 35 seconds
+#define MIN 1050
+#define CHG 5
+#define SVP 6
+#define LPR 4
+#define LPG 5
+#define BON 2
+#define BTO 3
+#define SEN A0
+#define OLED_MOSI   9
+#define OLED_CLK   10
+#define OLED_DC    11
+#define OLED_CS    12
+#define OLED_RESET 13
+#include <Servo.h>
+#include <SPI.h>
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+
+
+Adafruit_SSD1306 display(OLED_MOSI, OLED_CLK, OLED_DC, OLED_RESET, OLED_CS);
+
+#if (SSD1306_LCDHEIGHT != 64)
+#error("Height incorrect, please fix Adafruit_SSD1306.h!");
+#endif
+
 Servo myservo;  // create servo object to control a servo 
-                // a maximum of eight servo objects can be created 
+                
+volatile uint8_t running;
  
-int pos = MIN;    // variable to store the servo position
+volatile int pos;  
+
+volatile uint8_t l_state;
+
+volatile unsigned long t_zero;
+volatile unsigned long t_one;
  
 void setup() 
 { 
-  myservo.attach(SVP);  // attaches the servo on pin 9 to the servo object
-  myservo.writeMicroseconds(pos);
-  pinMode(LED, OUTPUT);
+  
+  running = 0;
+  t_zero = 0;
+  
+  init_display();
+  init_esc();
+  
+  pinMode(LPR,OUTPUT);
+  pinMode(LPG,OUTPUT);
+  pinMode(SEN,INPUT);
+  pinMode(BON,INPUT);
+  pinMode(BTO,INPUT);
+  
+  digitalWrite(LPR,LOW);
+  digitalWrite(LPG,LOW);
+  
+  init_pci();
+  attachInterrupt(1, up_isr, FALLING);
+  attachInterrupt(0, down_isr, FALLING);
+  
+  l_state = digitalRead(SEN);  
+  
 }
- 
  
 void loop() 
 { 
-  digitalWrite(LED, HIGH);
-  pos +=ADD;
-  myservo.writeMicroseconds(pos);
-  delay(DEL);
-  if(pos == MAX){
-    pos = MIN;
+  
+  if (!running)
+  { 
+    digitalWrite(LPR,HIGH);
+    digitalWrite(LPG,LOW);
   }
-  digitalWrite(LED, LOW);
-  delay(DEL);
+  else
+  {
+    digitalWrite(LPG,HIGH);
+    digitalWrite(LPR,LOW);
+  }
+  
+  myservo.writeMicroseconds(pos);
+  
+  display.clearDisplay();
+  display.setCursor(0,0);
+  display.print(pos);
+  display.println("ms");
+  if(l_state)
+    display.println("latched");
+  else
+    display.println("unlatched");
+  display.print((t_one - t_zero));
+  display.display();
+
+}
+
+void init_esc(){
+  
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setCursor(0,0);
+  display.print("Initializing");
+  display.display();
+  display.setTextSize(2);
+  
+  myservo.attach(SVP);
+  myservo.writeMicroseconds(980);
+  delay(5000);
+  pos = MIN;
+  t_one = millis();
+}
+
+void init_display(){
+  display.begin(SSD1306_SWITCHCAPVCC);
+  display.clearDisplay();
+  display.setTextSize(2);
+  display.setTextColor(WHITE);
+  display.setCursor(0,0);
+}
+
+void init_pci(){
+  PCICR |= (1 << PCIE1); //enable pc interrupts
+  PCMSK1 |= (1 << PCINT8); //enable intterupts for A0
+}
+
+void up_isr(){
+ if (!running)
+   running = 1;
+  
+ if (pos != MAX)
+   pos += CHG; 
+}
+
+void down_isr(){
+  
+  if (pos != MIN){
+    pos -= CHG;   
+  }
+  if (pos == MIN){
+    running = 0;
+  }
+}
+
+ISR( PCINT1_vect ){
+  l_state = digitalRead(SEN);
+  t_zero = t_one;
+  t_one = millis();
 }
