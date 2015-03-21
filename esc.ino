@@ -1,4 +1,4 @@
-#define MAX 2000
+#define MAX 1100
 #define MIN 1050
 #define CHG 5
 #define SVP 6
