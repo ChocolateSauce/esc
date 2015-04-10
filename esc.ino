@@ -82,7 +82,7 @@ void loop()
   display.clearDisplay();
   display.setCursor(0,0);
   display.print(pos);
-  display.println("ms");
+  display.println("us");
   /*if(l_state)
     display.println("latched");
   else
