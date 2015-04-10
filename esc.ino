@@ -1,6 +1,6 @@
-#define MAX 1100
+#define MAX 1120
 #define MIN 1050
-#define CHG 5
+#define CHG 1
 #define SVP 6
 #define LPR 4
 #define LPG 5
@@ -35,6 +35,7 @@ volatile uint8_t l_state;
 
 volatile unsigned long t_zero;
 volatile unsigned long t_one;
+float spd = 0;
  
 void setup() 
 { 
@@ -64,7 +65,7 @@ void setup()
  
 void loop() 
 { 
-  
+  spd = (1.0f/(((t_one - t_zero)*2.0f)/1000000.0f))*60.0f;
   if (!running)
   { 
     digitalWrite(LPR,HIGH);
@@ -82,11 +83,11 @@ void loop()
   display.setCursor(0,0);
   display.print(pos);
   display.println("ms");
-  if(l_state)
+  /*if(l_state)
     display.println("latched");
   else
-    display.println("unlatched");
-  display.print((t_one - t_zero));
+    display.println("unlatched");*/
+  display.print(spd);
   display.display();
 
 }
@@ -104,7 +105,7 @@ void init_esc(){
   myservo.writeMicroseconds(980);
   delay(5000);
   pos = MIN;
-  t_one = millis();
+  t_one = micros();
 }
 
 void init_display(){
@@ -141,5 +142,5 @@ void down_isr(){
 ISR( PCINT1_vect ){
   l_state = digitalRead(SEN);
   t_zero = t_one;
-  t_one = millis();
+  t_one = micros();
 }
