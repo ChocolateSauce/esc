@@ -1,5 +1,5 @@
-#define MAX 1120
-#define MIN 1050
+#define MAX 1150
+#define MIN 1060
 #define CHG 1
 #define SVP 6
 #define LPR 4
@@ -12,6 +12,10 @@
 #define OLED_DC    11
 #define OLED_CS    12
 #define OLED_RESET 13
+#define SETPT 625.0f
+#define KD 0.000f
+#define KP 0.007f //0.006
+#define KI 0.00003f//0.000033
 #include <Servo.h>
 #include <SPI.h>
 #include <Wire.h>
@@ -28,18 +32,25 @@ Adafruit_SSD1306 display(OLED_MOSI, OLED_CLK, OLED_DC, OLED_RESET, OLED_CS);
 Servo myservo;  // create servo object to control a servo 
                 
 volatile uint8_t running;
+volatile uint8_t fudgemode;
  
-volatile int pos;  
+/*volatile*/ int pos;  
 
 volatile uint8_t l_state;
 
 volatile unsigned long t_zero;
 volatile unsigned long t_one;
+
 float spd = 0;
- 
+//float prev_spd = 0;
+volatile float prev_error = 0;
+volatile float error_sum  = 0;
+
+void computePID(float current_spd, float setpoint, int command);
+
 void setup() 
 { 
-  
+  fudgemode = 0;
   running = 0;
   t_zero = 0;
   
@@ -66,15 +77,31 @@ void setup()
 void loop() 
 { 
   spd = (1.0f/(((t_one - t_zero)*2.0f)/1000000.0f))*60.0f;
+  //if (prev_spd != 0)
+  //  spd = (spd+prev_spd)/2;
+   
   if (!running)
   { 
     digitalWrite(LPR,HIGH);
     digitalWrite(LPG,LOW);
+    pos = MIN;
   }
   else
   {
     digitalWrite(LPG,HIGH);
     digitalWrite(LPR,LOW);
+    
+    if(fudgemode && (spd < SETPT) ){
+      pos++;
+      fudgemode = 0;
+    }
+    else if (fudgemode && (spd >= SETPT) ){
+      pos--;
+      fudgemode = 0;
+    }
+    else
+      computePID(spd, SETPT, pos);
+    
   }
   
   myservo.writeMicroseconds(pos);
@@ -83,12 +110,16 @@ void loop()
   display.setCursor(0,0);
   display.print(pos);
   display.println("us");
-  /*if(l_state)
+  if(l_state)
     display.println("latched");
   else
     display.println("unlatched");*/
+  if(fudgemode)
+    display.println("m");
   display.print(spd);
   display.display();
+  
+  //prev_spd = spd;
 
 }
 
@@ -124,23 +155,44 @@ void init_pci(){
 void up_isr(){
  if (!running)
    running = 1;
+ else
+   fudgemode = 1;
   
- if (pos != MAX)
-   pos += CHG; 
+ //if (pos != MAX)
+ //  pos += CHG; 
 }
 
 void down_isr(){
   
-  if (pos != MIN){
-    pos -= CHG;   
-  }
-  if (pos == MIN){
+  //if (pos != MIN){
+  //  pos -= CHG;   
+  //}
+  //if (pos == MIN){
     running = 0;
-  }
+    fudgemode = 0;
+    prev_error = 0;
+    error_sum  = 0;
+  //}
 }
 
 ISR( PCINT1_vect ){
   l_state = digitalRead(SEN);
   t_zero = t_one;
   t_one = micros();
+}
+
+void computePID(float current_spd, float setpoint, int command){
+   float error = 0;
+   float pidTerm = 0;
+   
+   error = setpoint - current_spd;
+   
+   pidTerm = (KP*error) + KD*(error - prev_error) + KI*error_sum;
+   
+   pos = constrain( command + (int) pidTerm, MIN, MAX);
+   
+   
+   prev_error = error;
+   error_sum += error;
+  
 }
