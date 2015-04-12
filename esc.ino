@@ -158,7 +158,7 @@ void init_pci(){
 void up_isr(){
  if (!running){
    running = 1;
-   t_one = micros();
+   t_one = 1000000;
  }
  else
    fudgemode = 1;
@@ -178,6 +178,7 @@ void down_isr(){
     prev_error = 0;
     error_sum  = 0;
     spd = 0;
+    t_one = 0;
   //}
 }
 
