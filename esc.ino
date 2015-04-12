@@ -78,7 +78,7 @@ void setup()
 void loop() 
 { 
   //spd = (1.0f/(((t_one - t_zero)*2.0f)/1000000.0f))*60.0f;
-  spd = (1.0f/(((t_one - t_zero))/1000000.0f))*60.0f;
+  
   //if (prev_spd != 0)
   //  spd = (spd+prev_spd)/2;
    
@@ -93,7 +93,7 @@ void loop()
   {
     digitalWrite(LPG,HIGH);
     digitalWrite(LPR,LOW);
-    
+    spd = (1.0f/(((t_one - t_zero))/1000000.0f))*60.0f;
     if(fudgemode && (spd < SETPT) ){
       pos++;
       fudgemode = 0;
@@ -139,7 +139,7 @@ void init_esc(){
   myservo.writeMicroseconds(980);
   delay(5000);
   pos = MIN;
-  t_one = micros();
+  //t_one = micros();
 }
 
 void init_display(){
@@ -156,8 +156,10 @@ void init_pci(){
 }
 
 void up_isr(){
- if (!running)
+ if (!running){
    running = 1;
+   t_one = micros();
+ }
  else
    fudgemode = 1;
   
