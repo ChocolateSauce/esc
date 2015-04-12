@@ -12,7 +12,7 @@
 #define OLED_DC    11
 #define OLED_CS    12
 #define OLED_RESET 13
-#define SETPT 625.0f
+#define SETPT 605.0f
 #define KD 0.000f
 #define KP 0.007f //0.006
 #define KI 0.00003f//0.000033
@@ -29,7 +29,7 @@ Adafruit_SSD1306 display(OLED_MOSI, OLED_CLK, OLED_DC, OLED_RESET, OLED_CS);
 #error("Height incorrect, please fix Adafruit_SSD1306.h!");
 #endif
 
-Servo myservo;  // create servo object to control a servo 
+Servo myservo;  // create servo object to control pwm 
                 
 volatile uint8_t running;
 volatile uint8_t fudgemode;
@@ -76,7 +76,8 @@ void setup()
  
 void loop() 
 { 
-  spd = (1.0f/(((t_one - t_zero)*2.0f)/1000000.0f))*60.0f;
+  //spd = (1.0f/(((t_one - t_zero)*2.0f)/1000000.0f))*60.0f;
+  spd = (1.0f/(((t_one - t_zero))/1000000.0f))*60.0f;
   //if (prev_spd != 0)
   //  spd = (spd+prev_spd)/2;
    
@@ -113,7 +114,7 @@ void loop()
   if(l_state)
     display.println("latched");
   else
-    display.println("unlatched");*/
+    display.println("unlatched");
   if(fudgemode)
     display.println("m");
   display.print(spd);
@@ -177,8 +178,10 @@ void down_isr(){
 
 ISR( PCINT1_vect ){
   l_state = digitalRead(SEN);
+  if (l_state){
   t_zero = t_one;
   t_one = micros();
+  }
 }
 
 void computePID(float current_spd, float setpoint, int command){
