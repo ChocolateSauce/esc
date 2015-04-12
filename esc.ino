@@ -53,6 +53,7 @@ void setup()
   fudgemode = 0;
   running = 0;
   t_zero = 0;
+  t_one = 0;
   
   init_display();
   init_esc();
@@ -71,7 +72,6 @@ void setup()
   attachInterrupt(0, down_isr, FALLING);
   
   l_state = digitalRead(SEN);
-  spd = 0;  
   
 }
  
@@ -87,6 +87,7 @@ void loop()
     digitalWrite(LPR,HIGH);
     digitalWrite(LPG,LOW);
     pos = MIN;
+    spd = 0;  
   }
   else
   {
