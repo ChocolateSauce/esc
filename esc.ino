@@ -14,8 +14,8 @@
 #define OLED_RESET 13
 #define SETPT 605.0f
 #define KD 0.000f
-#define KP 0.007f //0.006
-#define KI 0.00003f//0.000033
+#define KP 0.003f //0.006//0.007f
+#define KI 0.00000f//0.000033/0.00003f
 #include <Servo.h>
 #include <SPI.h>
 #include <Wire.h>
@@ -70,7 +70,8 @@ void setup()
   attachInterrupt(1, up_isr, FALLING);
   attachInterrupt(0, down_isr, FALLING);
   
-  l_state = digitalRead(SEN);  
+  l_state = digitalRead(SEN);
+  spd = 0;  
   
 }
  
@@ -173,6 +174,7 @@ void down_isr(){
     fudgemode = 0;
     prev_error = 0;
     error_sum  = 0;
+    spd = 0;
   //}
 }
 
